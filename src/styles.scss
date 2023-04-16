@@ -1,1 +1,167 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://cdn.lineicons.com/4.0/lineicons.css');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;700&display=swap');
+//@import url('https://fonts.googleapis.com/css2?family=Helvetica:wght@300;400;700&display=swap');
+@import url('https://fonts.cdnfonts.com/css/helvetica-neue-9');  
+@import url('https://fonts.googleapis.com/css2?family=Besley:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@400;700');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji:wght@400;700');
+@import url('https://prosemirror.net/css/editor.css');
+
+@import './picker.css';
+@import './quill.snow.scss';
+@import 'zindex.scss';
+
+@import '~tippy.js/dist/tippy.css';
+@import '~tippy.js/themes/light.css';
+@import '~tippy.js/animations/scale.css';
+
+html {
+    --main-color: #8bc34a;
+    
+    --dialog-content-border-radius: 4px;
+    --dialog-content-bg: rgba(0,0,0,0);
+    --dialog-backdrop-bg: rgba(0, 0, 0, 0.6);
+
+    /* LIGHT */
+    &.light {
+        --bg-image: url('assets/bg-light.svg');
+        --dialog-content-box-shadow: 0px 2px 1px rgb(0 0 0 / 20%);
+
+        --text-primary-background: white; 
+        --text-primary-color: #2d2d2d;
+        --text-secondary-color: #999;
+
+        --top-menu-background: #2d2d2d;
+
+        --toolbar-background: #E7E7E7;//rgba(182, 182, 182, 0.75);
+        --toolbar-border: rgb(255 255 255 / 40%);
+        --toolbar-img-invert: invert(0%);
+        
+        --tool-pressed: #ccc;
+        --tool-outline: #ababab;
+        --tool-background: white;
+
+        --card-outline: #eee;
+
+        --image-bg-placeholder: linear-gradient(318deg, rgba(237,251,255,1) 0%, rgba(255,241,255,1) 100%);
+
+        --button-background: var(--text-primary-background);
+        --button-border: var(--tool-outline);
+        --button-text-color: var(--text-primary-color);
+        --button-hover: #ececec;
+
+        --main-error: rgb(122, 0, 0);
+
+        --ui-box-shadow: var(--dialog-content-box-shadow);//0px 5px 5px 0px rgb(0 0 0 / 45%),  0 4px 4px -2px rgb(0 0 0 / 45%);
+        --ui-popup-background: var(--text-primary-background);
+
+        
+        --main-dark: #2d2d2d;
+        --main-text: #2d2d2d;
+        --low-text-contrast: #999;
+        --main-contrast: white;
+        --mid-contrast: #ccc;
+        --low-contrast: #ccc;
+        --lower-contrast: #eee;
+        --text-background: white;
+        --toolbar: #E7E7E7;
+        --bg-image: url('assets/bg-light.svg');
+        --dialog-content-box-shadow: 0px 2px 1px rgb(0 0 0 / 20%);
+        --main-error: #f44336;
+        
+    }
+
+    /* DARK */
+    &.dark {
+        --bg-image: url('assets/bg-dark.svg');
+        --dialog-content-box-shadow: 0px 2px 1px rgb(0 0 0 / 40%);
+
+        --text-primary-background: #444; 
+        --text-primary-color: white;
+        --text-secondary-color: #999;
+
+        --top-menu-background: #1b1b1b;
+
+        --toolbar-background: #2d2d2d;//rgba(73, 73, 73, 0.75);
+        --toolbar-border: rgb(0 0 0 / 10%);
+        --toolbar-img-invert: invert(75%);
+
+        --tool-pressed: #777;
+        --tool-outline: #555;
+        --tool-background: #444;
+        
+        --card-outline: #555;
+
+        --image-bg-placeholder: linear-gradient(318deg, rgb(40, 79, 90) 0%, rgb(95, 37, 95) 100%);
+
+        --button-background: var(--text-primary-background);
+        --button-border: #777;
+        --button-text-color: var(--text-primary-color);
+        --button-hover: #333;
+
+        --main-error: rgb(122, 0, 0);
+
+        --ui-box-shadow: 0px 5px 5px 0px rgb(0 0 0 / 25%),  0 4px 4px -2px rgb(0 0 0 / 35%);
+        --ui-popup-background: var(--top-menu-background);
+
+        
+        --main-dark: #202020;
+        --main-text: white;
+        --low-text-contrast: #ccc;
+        --main-contrast: white;
+        --mid-contrast: #666;
+        --low-contrast: #999;
+        --lower-contrast: #444;
+        --text-background: #555;
+        --toolbar: rgba(68, 68, 68, 0.8);
+        --bg-image: url('assets/bg-dark.svg');
+        --dialog-content-box-shadow: 0px 2px 1px rgb(0 0 0 / 20%);
+        --main-error: #c4342a;
+        
+    }
+
+}
+
+.light-switch {
+    .tippy-arrow:before {
+        border-bottom-color: var(--ui-popup-background) !important;
+    }
+
+    .tippy-box {
+        background-color: var(--ui-popup-background);
+        color: var(--text-primary-color);
+        
+        box-shadow: var(--ui-box-shadow);
+        border: 1px solid var(--card-outline);
+    }
+}
+
+html, body {
+    position: relative;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overscroll-behavior: none;
+    overflow: hidden;
+}
+
+html {
+    box-sizing: border-box;
+    //font-family: "Quicksand", sans-serif;
+    font-family: "Helvetica", sans-serif;
+    font-size: 100%;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+.ui-shadow {
+    //box-shadow: var(--dialog-content-box-shadow);
+}
+
+.selecto-selection {
+    background-color: rgba(black,0.2) !important;
+    border: 1px solid rgba(black,0.6) !important;
+    z-index: $ZINDEX_SELECTION_BOX !important;
+}

@@ -1,0 +1,282 @@
+<div id='ui' style='--x: {{offset.x}}px; --y: {{offset.y}}px; --zoom: {{zoom}};'>
+    <div id='downloader' (click)='stealClick($event)' *ngIf='loading'>
+        <div id='box'>
+            <div id='spinner'>
+                <i class="lni lni-spinner-solid"></i>
+            </div>
+            <div class='cancel-button' *ngIf='canCancelLoad' (click)='cancelLoadClick()'>
+                <i class="logo lni lni-cross-circle"></i>
+                <span>Cancel</span>
+            </div>
+        </div>
+    </div>
+    
+    <header class='ui-shadow'>
+        <div class='top'>
+            <div class='menu' (click)='logoClick()' tp='File Explorer'>
+                <i class="logo lni lni-layers"></i>
+                <i class="arrow lni lni-chevron-down"></i>
+            </div>
+            <div class='path'>
+                <span 
+                    *ngFor='let p of (canvasStore.currentPath$|async)' 
+                    (click)='pathClick(p)'
+                    style='--path-color: {{p.content.color}};'
+                >
+                    {{p.content.name|stripHtml}}
+                </span>
+            </div>
+            <div class='options'>
+                <div tp='Save your file (Ctrl+S)' id='save-button' (click)='saveClick()'><i class="lni lni-save"></i></div>
+                <ng-container *ngIf='canvasService.saveState$|async as saveState'>
+                    <div *ngIf='saveState === "unsaved"' class='save-status unsaved'>
+                        <i class="lni lni-warning"></i>
+                        <div>Unsaved changes</div>
+                    </div>
+                    <div *ngIf='saveState === "saving"' class='save-status saving'>
+                        <i class="lni lni-spinner-solid do-spin"></i>
+                        <div>Saving...</div>
+                    </div>
+                    <div *ngIf='saveState === "saved"' class='save-status saved'>
+                        <i class="lni lni-checkmark-circle"></i>
+                        <div>Saved successfully</div>
+                    </div>
+                    <div *ngIf='saveState === "save-error"' class='save-status save-error'>
+                        <i class="lni lni-cross-circle"></i>
+                        <div>Error while saving</div>
+                    </div>
+                    <div *ngIf='saveState === "loaded"' class='save-status loaded'>
+                        <i class="lni lni-checkmark-circle"></i>
+                        <div></div>
+                    </div>
+                </ng-container>
+                <div class='zoom-controls'>
+                    <i tp='Zoom-out (Ctrl+Wheel)' class="lni lni-zoom-out" (click)='zoomOutClick()'></i>
+                    <div>{{(zoom*100)|number:'1.0-0'}}%</div>
+                    <i tp='Zoom-in (Ctrl+Wheel)' class="lni lni-zoom-in" (click)='zoomInClick()'></i>
+                </div>
+                <span tp='File Storage Info'>
+                    <i [tp]='tpl' tpClassName='light-switch' [tpIsVisible]='storageVisible||!!(storageService.error$|async)' tpVariation="popper" class="lni lni-database" (click)='storageClick()'></i>
+                </span>
+                <span tp='Help Center'>
+                    <i class="lni lni-question-circle"></i>
+                </span>
+                <span tp='Text Search'>
+                    <i class="lni lni-search"></i>
+                </span>
+                <span tp='Options'>
+                    <i [tp]='configPopup' tpClassName='light-switch' [tpIsVisible]='configVisible' tpVariation="popper" class="lni lni-cog" (click)='configClick()'></i>
+                </span>
+            </div>
+        </div>
+    </header>
+    <ng-container *ngIf='{
+        editing: canvasStore.editing$|async,
+        selected: canvasStore.selected$|async
+    } as data;'>
+        <div id='toolbar' [ngClass]='{"open":(data.editing && data.selected && data.selected.length === 1  && ["text","title","folder"].indexOf(data.selected[0].content.kind) != -1)||(data.selected && data.selected.length === 1 && ["folder", "arrow"].indexOf(data.selected[0].content.kind) != -1)}'>
+            <div id='tools'>
+                <div appDraggable tp='Drag to add' tpVariation="shouldDrag" [enable]='["drag"]' class='tool' data-name='Card' (dragStart)='dragStart($event, "container")' (dragMove)='dragMove($event)' (dragEnd)='dragEnd($event)'>
+                    <img src='assets/icons/card.svg'/>
+                </div>
+                <div appDraggable tp='Drag to add' tpVariation="shouldDrag" [enable]='["drag"]' class='tool' data-name='Heading' (dragStart)='dragStart($event, "title")' (dragMove)='dragMove($event)' (dragEnd)='dragEnd($event)'>
+                    <img src='assets/icons/heading.svg'/>
+                </div>
+                <div appDraggable tp='Drag to add' tpVariation="shouldDrag" [enable]='["drag"]' class='tool' data-name='Text' (dragStart)='dragStart($event, "text")' (dragMove)='dragMove($event)' (dragEnd)='dragEnd($event)'>
+                    <img src='assets/icons/text.svg'/>
+                </div>
+                <div appDraggable tp='Drag to add' tpVariation="shouldDrag" [enable]='["drag"]' class='tool' data-name='Image' (dragStart)='dragStart($event, "image")' (dragMove)='dragMove($event)' (dragEnd)='dragEnd($event)'>
+                    <img src='assets/icons/image.svg'/>
+                </div>
+                <div appDraggable tp='Drag to add' tpVariation="shouldDrag" [enable]='["drag"]' class='tool' data-name='Folder' (dragStart)='dragStart($event, "folder")' (dragMove)='dragMove($event)' (dragEnd)='dragEnd($event)'>
+                    <img src='assets/icons/folder.svg'/>
+                </div>
+            </div>
+            <div id='selection-options' class='ui-shadow' [ngClass]='{
+                "editing":data.editing,
+                "selected":(data.selected && data.selected.length === 1)
+            }'>
+                <ng-container *ngIf='data.selected && data.selected[0] && ["text","title","folder"].indexOf(data.selected[0].content.kind) != -1'>
+                    <button tp='Bold' class='tool text-tool' data-name='' (click)='boldClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.bold}'>
+                        <img src='assets/icons/bold.svg'/>
+                    </button>
+                    <button tp='Italic' class='tool text-tool' data-name='' (click)='italicClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.italic}'>
+                        <img src='assets/icons/italic.svg'/>
+                    </button>
+                    <button tp='Underline' class='tool text-tool' data-name='' (click)='underlineClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.underline}'>
+                        <img src='assets/icons/underline.svg'/>
+                    </button>
+                    <button tp='Strikethrough' class='tool text-tool' data-name='' (click)='strikethroughClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.strike}'>
+                        <img src='assets/icons/strikethrough.svg'/>
+                    </button>
+                    <button tp='Bullet List' class='tool text-tool' data-name='' (click)='unorderedListClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.list === "bullet"}'>
+                        <img src='assets/icons/bullet-list.svg'/>
+                    </button>
+                    <button tp='Ordered List' class='tool text-tool' data-name='' (click)='orderedListClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.list === "ordered"}'>
+                        <img src='assets/icons/ordered-list.svg'/>
+                    </button>
+                    <button tp='Align Center' class='tool text-tool' data-name='' (click)='alignCenterClick($event)' [ngClass]='{"on": (textAreaService.format$|async)?.align === "center"}'>
+                        <img src='assets/icons/align-center.svg'/>
+                    </button>
+                    <input #headingStyleState style="display:none" type='radio' name="folder"/>
+                    <button class='tool text-tool' data-name='' (click)='headingStyleState.checked?nullState.click():headingStyleState.click()' [ngClass]='{"on": headingStyleState.checked}'>
+                        <img tp='Heading Style' src='assets/icons/heading-style.svg'/>
+                        <div class='tool-popup' *ngIf='headingStyleState.checked'>
+                            <button tp='No Heading' class='tool text-tool' data-name='' (click)='headingClick(false, $event)' [ngClass]='{"on": !((textAreaService.format$|async)?.header)}'>
+                                <img src='assets/icons/hx.svg'/>
+                            </button>
+                            <button tp='Large Heading' class='tool text-tool' data-name='' (click)='headingClick(1, $event)' [ngClass]='{"on": (textAreaService.format$|async)?.header === 1}'>
+                                <img src='assets/icons/h1.svg'/>
+                            </button>
+                            <button tp='Medium Heading' class='tool text-tool' data-name='' (click)='headingClick(2, $event)' [ngClass]='{"on": (textAreaService.format$|async)?.header === 2}'>
+                                <img src='assets/icons/h2.svg'/>
+                            </button>
+                            <button tp='Small Heading' class='tool text-tool' data-name='' (click)='headingClick(3, $event)' [ngClass]='{"on": (textAreaService.format$|async)?.header === 3}'>
+                                <img src='assets/icons/h3.svg'/>
+                            </button>
+                        </div>
+                    </button>
+                </ng-container>
+
+                <ng-container *ngIf='data.selected && data.selected[0] && data.selected[0].content.kind === "arrow"'>
+                    <button tp='Arrow Tip Start' class='tool arrow-tool' data-name='' (click)='arrowTipLeftClick($event, data.selected[0])' [ngClass]='{"on": data.selected[0].content.tipLeft}'>
+                        <i class="lni lni-arrow-left"></i>
+                    </button>
+                    <button tp='Arrow Tip End' class='tool arrow-tool' data-name='' (click)='arrowTipRightClick($event, data.selected[0])' [ngClass]='{"on": data.selected[0].content.tipRight}'>
+                        <i class="lni lni-arrow-right"></i>
+                    </button>
+                </ng-container>
+
+                <input #nullState style="display:none" type='radio' name="folder"/>
+
+                <ng-container *ngIf='data.selected && data.selected[0] && data.selected[0].content.kind === "folder"'>
+                    <input #colorState style="display:none" type='radio' name="folder"/>
+                    <button tp='Folder Color' class='tool folder-tool' data-name='' (click)='colorState.checked?nullState.click():colorState.click()' [ngClass]='{"on": colorState.checked}'>
+                        <i class="lni lni-paint-roller"></i>
+                        <div class='tool-popup' *ngIf='colorState.checked'>
+                            <span [style.background]='data.selected[0].content.color'
+                                [cpToggle]='true'
+                                (cpInputChange)='cpInputChange($event)'
+                                (cpSliderDragEnd)='cpInputChange($event)'
+                                [cpDialogDisplay]='"inline"'
+                                [(colorPicker)]='data.selected[0].content.color'></span>
+                        </div>
+                    </button>
+
+                    <input #iconState style="display:none" type='radio' name="folder"/>
+                    <button tp='Folder Icon' class='tool folder-tool' data-name='' (click)='iconState.checked?nullState.click():iconState.click()' [ngClass]='{"on": iconState.checked}'>
+                        <i class="lni lni-smile"></i>
+                        <div class='tool-popup' *ngIf='iconState.checked' (click)='this.stealClick($event)'>
+                            <emoji-mart set="google" (emojiClick)="emojiInputChange($event, data.selected[0])"></emoji-mart>
+                        </div>
+                    </button>
+                </ng-container>
+            </div>
+        </div>
+    </ng-container>
+    <div class='info'>
+        {{offset|json}}<br>
+        zoom: {{zoom}}
+    </div>
+</div>
+
+<ng-template #configPopup let-hide>
+    <div class='config-popup'>
+        <h2>Options</h2>
+        <ul>
+            <li>
+                Auto-Sync<input type='checkbox' [checked]='autoSyncEnabled'  (change)='onAutoSyncChange($event)'/>
+            </li>
+            <li class='explanation'>
+                Auto-sync saves your changes after 5 seconds of inactivity.
+            </li>
+            <li>
+                Dark mode<input type='checkbox' [checked]='darkModeEnabled' (change)='onDarkModeChange($event)'/>
+            </li>
+            <li class='explanation'>
+                White text on a dark background.
+            </li>
+        </ul>
+    </div>
+</ng-template>
+
+<ng-template #tpl let-hide>
+
+    <div class='storage-info local' *ngIf='(storageService.currentFile$|async)?.storage === "local"'>
+        <div *ngIf='storageService.error$|async' class='error'>
+            <p class='error-title'><i class="lni lni-warning"></i>Local storage is out of space!</p>
+            <p>Delete larger images and try saving again. If that's not an option, migrate to a cloud storage option.</p>
+            <p>If you don't take any action, <strong>your data will be lost</strong>.</p>
+            <!--
+            <div>
+                <div class='btn'>Download file</div>
+                <div class='btn'>Copy to Google Drive</div>
+            </div>
+            -->
+        </div>
+        <!--
+        <hr/>
+        <div>Auto-sync saves your work with every change to prevent data loss.</div>
+        <input type='checkbox'/>
+        <span>Auto-sync</span>
+        <hr/>
+        -->
+        <h2>Your file is saved on your local storage.</h2>
+        <p>Local storage is a method used by web applications to store small amounts of data on devices. While it is quick and efficient, it has <strong>limited capacity</strong> and is <strong>not reliable</strong> as a long-term storage solution.</p>
+        <p>Make sure to backup your files regularly.</p>
+        <!--
+        <hr/>
+        <p>Space left:</p>
+        <div>
+            <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+        </div>
+        -->
+    </div>
+
+    <div class='storage-info drive' *ngIf='(storageService.currentFile$|async)?.storage === "drive"'>
+        <div *ngIf='storageService.error$|async' class='error'>
+            <p class='error-title'><i class="lni lni-warning"></i>Google Drive login expired!</p>
+            <p>Click on the button below to login, then try saving again.</p>
+            <ng-container *ngIf='{
+                loading: (driveService.loading$|async),
+                loaded: (driveService.loaded$|async),
+                authenticated: (driveService.authenticated$|async),
+                driveFiles: (driveService.files$|async),
+                files: (storageService.files$|async)
+            } as drive'>
+                <div id='re-connect-button'>
+                    <div *ngIf='(drive.loaded || drive.loading) && !drive.authenticated' [ngClass]='{"loading": drive.loading}' class='file-options' (click)='driveAuthenticate()'>
+                        <i *ngIf='drive.loaded' class='lni'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width='16px' height='16px' viewBox="0 0 87.3 78">
+                                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                                <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                                <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                                <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                                <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                            </svg>
+                        </i>
+                        <i *ngIf='drive.loading' class='lni lni-spinner spinner'></i>
+                        <div class='drive-info'>
+                            <span class='name'>Connect to Google Drive</span>
+                            <span class='simple'>Keep your data in the cloud</span>
+                        </div>
+                    </div>
+                    
+                    <div *ngIf='drive.authenticated' class='file-options'>
+                        <i class='lni lni-checkmark-circle'></i>
+                        <div class='drive-info'>
+                            <span class='name'>
+                                Please save your file again
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+        <h2>Your file is saved on Google Drive.</h2>
+        <p>Google Drive is a cloud storage service that allows you to store and access your files from anywhere with an internet connection.</p>
+        <p>Since the access granted to us is <strong>temporary</strong>, you might have to <strong>login again</strong> during your sessions. But don't worry! Everything will be handled transparently.</p>
+    </div>
+
+  </ng-template>

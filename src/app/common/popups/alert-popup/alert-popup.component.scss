@@ -1,0 +1,102 @@
+:host {
+    height: 100%;
+}
+
+#alert-popup {
+    padding: 20px 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: 100%;
+    border-radius: 3px;
+    border: 1px solid var(--low-contrast);
+    background-color: var(--text-background);
+
+    #title {
+        font-weight: bold;
+        font-size: 1.1em;
+        flex-grow: 0;
+        //padding-top: 15px;
+        //font-family: "Quicksand";
+        color: var(--text-primary-color);
+        
+        i {
+            font-size: 1.4em;
+            vertical-align: middle;
+            margin-right: 5px;
+            color: var(--main-error);
+            font-weight: bold;
+        }
+    }
+
+    #body {
+        flex-grow: 1;
+        padding-top: 15px;
+        padding-bottom: 30px;
+        color: var(--mid-contrast);
+        margin-top: 5px;
+        border-top: 1px solid var(--low-contrast);
+    }
+
+    #controls {
+        display: flex;
+        justify-content: flex-end;
+        flex-grow: 0;
+
+        .button {
+            user-select: none;
+            
+            cursor: pointer;
+            display: flex;
+            justify-content: stretch;
+            align-items: center;
+
+            width: 120px;
+            padding: 10px;
+            margin-left: 15px;
+            
+            border-radius: 3px;
+            border: 1px solid var(--low-contrast);
+            
+            background-color: var(--lower-contrast);
+            
+            color: var(--main-text);
+            font-family: "Quicksand";
+            font-size: 0.9em;
+            font-weight: bold;
+            
+            &:hover {
+                color: var(--mid-contrast);
+                background-color: var(--main-contrast);
+            }
+
+            &#confirm i {
+                
+            }
+        
+            &:hover#confirm i {
+                color: var(--main-color);
+            }
+
+            &#cancel i {
+                font-size: 0.9em;
+            }
+
+            &:hover#cancel i {
+                color: var(--main-error);
+            }
+
+            span {
+                flex-grow: 1;
+            }
+
+            i {
+                flex-grow: 0;
+                font-size: 1.1em;
+                vertical-align: middle;
+                margin-left: 5px;
+                font-weight: bold;
+            }
+        }
+    }
+}

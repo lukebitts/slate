@@ -1,0 +1,21 @@
+<div>
+    <quill-editor 
+        *ngIf='tux'
+        
+        id='editor' 
+        class=''
+         
+        [readOnly]='!enabled'
+        [(ngModel)]='text'
+        
+        [theme]='"snow"' 
+        [formats]='["bold", "italic", "underline", "strike", "header", "indent", "align", "list"]'
+        [modules]='{toolbar: false, clipboard: { matchVisual: false }, history: { maxStack: 1000, userOnly: true }}'
+        [preserveWhitespace]='true'
+        (onEditorCreated)='onEditorCreated($event)'
+        (onFocus)='onFocus($event)'
+        (onBlur)='onBlur($event)'
+        (onContentChanged)='onContentChanged($event)'
+        (onSelectionChanged)='onSelectionChanged($event)'
+    ></quill-editor><!--
+--></div>

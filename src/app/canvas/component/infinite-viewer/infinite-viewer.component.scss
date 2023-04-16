@@ -1,0 +1,26 @@
+:host {
+    //width: 100%;
+    //height: calc( 100%);
+    position: absolute !important;
+    width: calc(100%);
+    height: calc(100%);
+}
+
+#bg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image: var(--bg-image);
+
+    background-position-x: calc( (var(--viewportX) - 1px) * var(--zoom) * -1 );
+    background-position-y: calc( (var(--viewportY) + 1px) * var(--zoom) * -1 );
+
+    background-origin: 0 0;
+
+    background-size: calc( 15px * var(--zoom) );
+
+    //transform: scale( var(--zoom) );
+}

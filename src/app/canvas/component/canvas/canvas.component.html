@@ -1,0 +1,296 @@
+<div id='canvas'>
+    <div id='box-selection' appBoxSelection (select)='onBoxSelect($event)' (selectEnd)='onBoxSelectEnd($event)'></div>
+
+    <ng-container *ngIf='(canvasService.draggingArrowHandle$|async) as h'>
+        <div class='arrow-handle-dragging' style='--x:{{h.pos.x}}px;--y:{{h.pos.y}}px;--w:{{h.size.w}}px;--h:{{h.size.h}}px;'>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    attr.d='M {{h.curve.sx}} {{h.curve.sy}} C {{h.curve.c1x}} {{h.curve.c1y}}, {{h.curve.c2x}} {{h.curve.c2y}}, {{h.curve.ex}} {{h.curve.ey}}' 
+                    stroke='black'
+                    stroke-width="3" 
+                    fill="none" />
+            </svg>
+        </div>
+    </ng-container>
+
+    <app-infinite-viewer id='viewer' class='view' [forceZoom$]='forceZoom$' [offset$]='canvasService.offset$' [useWheelScroll$]='useWheelScroll$'
+        (onOffset$)='onViewportOffset($event)' (onZoom$)='onViewportZoom($event)'>
+        <div class='viewport'>
+
+            <div *ngIf='(canvasStore.bounds$|async) as b' id='bounds' style='position: absolute; left: {{b[0].x}}px; top: {{b[0].y}}px; width: {{b[1].w}}px; height: {{b[1].h}}px;'>
+                <span>bounds</span>
+            </div>
+
+            <ng-container *ngIf='canvasStore.currentRoot$|async as root' class='canvas-object'>
+                <ng-template *ngFor='let obj of root.content.objects; trackBy: trackById; index as idx;'
+                    [ngTemplateOutlet]='canvasObject' [ngTemplateOutletContext]='{obj:obj,dragging:obj.dragging,idx:idx}'>
+                </ng-template>
+            </ng-container>
+
+            
+        </div>
+    </app-infinite-viewer>
+
+    <app-ui 
+        [loading]='loading'
+        [canCancelLoad]='canCancelLoad'
+        (onLoadingCancel)='onLoadingCancel.emit()'
+        [offset]='canvasService.offset' 
+        [zoom]='canvasService.zoom' 
+        (dragStart$)='onToolbarDragStart($event[0], $event[1])'
+        (dragMove$)='onToolbarDragMove($event)'
+        (dragEnd$)='onToolbarDragEnd($event)'
+        (logoClick$)='onLogoClick()'
+        (storageClick$)='onStorageClick()'
+        (zoomClick$)='onZoomClick($event)'
+        (saveClick$)='onSaveClick()'
+    >
+    </app-ui>
+</div>
+
+<ng-template #canvasObject let-obj='obj' let-parent='parent' let-dragging='dragging' let-idx='idx'>
+    <!-- PLACEHOLDER -->
+    <div 
+        appDraggable
+        [model]='parent'
+        [enable]='["dropzone"]'
+        [options]='{
+            acceptDrop: ".canvas-object, .tool, .folder-icon"
+        }'
+        (drop)='onObjectDrop($event, idx)'
+        class='placeholder'
+        [ngClass]='{
+            "small": obj.isRoot || !obj.dragging
+        }'
+        style='--x: {{obj.tentativePosition?.x}}px; --y: {{obj.tentativePosition?.y}}px; --w: {{obj.tentativeSize?.w}}px; --h: {{obj.tentativeSize?.h}}px;'
+    >
+    </div>
+    <div 
+        appDraggable
+        [model]='obj'
+        [attr.data-obj-id]='obj.id'
+        [enable]='obj.isRoot?obj.content.rootControls:obj.content.childControls'
+        [options]='obj.isRoot?obj.content.rootOptions:obj.content.childOptions'
+        (dragStart)='onObjectDragStart($event, obj)'
+        (dragMove)='onObjectDragMove($event)'
+        (dragEnd)='onObjectDragEnd($event)'
+        (drop)='onArrowHandleDrop(obj)'
+        (resizeStart)='onObjectResizeStart($event)' 
+        (resizeMove)='onObjectResizeMove($event)'
+        (resizeEnd)='onObjectResizeEnd($event)'
+        (tap)='obj.content.kind!="arrow"&&obj.content.kind!="folder"?onObjectTap($event, obj):null'
+        class='canvas-object' 
+        [ngClass]='{
+            "root": obj.isRoot, 
+            "box-selectable": obj.content.kind != "arrow"?obj.content.boxSelectable[obj.isRoot?0:1]:false, 
+            "selected": obj.selected, 
+            "editing": obj.editing,
+            "arrow-parent": obj.content.kind == "arrow",
+            "folder-parent": obj.content.kind == "folder",
+            "dragging": obj.dragging,
+            "resizing": obj.resizing
+        }'
+        style='--x: {{obj.position.x}}px; --y: {{obj.position.y}}px; --w: {{obj.size.w}}px; --h: {{obj.size.h}}px;'
+    >
+        <!-- DOCK -->
+        <ng-template 
+            *ngIf='!obj.isRoot && !(dragging||obj.dragging)' 
+            [ngTemplateOutlet]='dock' 
+            [ngTemplateOutletContext]='{obj:obj,top:true,idx:idx,parent:parent}'
+        >
+        </ng-template>
+        
+        <!-- ARROW HANDLE -->
+        <div
+            *ngIf='(obj.selected && obj.content.kind != "arrow") || (canvasService.draggingArrowHandle$|async)?.start == obj'
+            appDraggable
+            tp='Drag to add' tpVariation="shouldDrag"
+            [enable]='["drag"]'
+            (dragStart)='onArrowHandleDragStart($event, obj)'
+            (dragMove)='onArrowHandleDragMove($event)'
+            (dragEnd)='onArrowHandleDragEnd($event)'
+            class='arrow-handle'>
+        </div>
+
+        <!-- IMAGE -->
+        <div 
+            *ngIf='obj.content.kind == "image" && obj.content.handle != ""' 
+            class='image'
+            style='background-image: url({{obj.content.handle|imageHandleToDataUrl|async}})'
+        >
+        </div>
+        <div 
+            *ngIf='obj.content.kind == "image" && obj.content.handle == ""' 
+            class='image nosrc'
+        >
+            <input style='display:none;' #fileinput type="file" id="file-input" (change)='onUploadClick(obj, $event)'/>
+            
+            <div id='upload-btn' (click)='fileinput.click()'>
+                <i class="lni lni-upload"></i>
+                &nbsp;&nbsp;Upload an image
+            </div>
+
+            <div class='tip'>
+                You can also paste from the internet
+            </div>
+            
+        </div>
+
+        <!-- TEXT -->
+        <div 
+            *ngIf='obj.content.kind == "text"' 
+            class='text-box'
+            [ngClass]='{"ignore-drag":obj.editing}'
+        >
+            <ng-template [ngTemplateOutlet]='simpleTextEditor' [ngTemplateOutletContext]='{obj:obj}'>
+            </ng-template>
+        </div>
+
+        <!-- TITLE -->
+        <div 
+            *ngIf='obj.content.kind == "title"' 
+            class='title'
+            [ngClass]='{"ignore-drag":obj.editing}'
+        ><ng-template [ngTemplateOutlet]='simpleTextEditor' [ngTemplateOutletContext]='{obj:obj}'></ng-template></div>
+
+        <!-- FOLDER -->
+        <div 
+            *ngIf='obj.content.kind == "folder"' 
+            class='folder'
+            [ngClass]='{"ignore-drag":obj.editing}'
+        >
+            <div 
+                appDraggable
+                [enable]='["drag"]'
+                (dragStart)='onObjectDragStart($event, obj)'
+                (dragMove)='onObjectDragMove($event)'
+                (dragEnd)='onObjectDragEnd($event)'
+                (tap)='onObjectTap($event, obj)'
+                class='icon folder-icon' 
+                (dblclick)='onFolderDoubleClick(obj)' 
+                style='background-color: {{obj.content.color}};'
+                >
+                {{obj.content.icon}}
+            </div>
+
+            <ng-template 
+                #tx
+                [ngTemplateOutlet]='folderTextEditor' 
+                [ngTemplateOutletContext]='{obj:obj}'
+            >
+            </ng-template>
+        </div>
+
+        <!-- CONTAINER -->
+        <div 
+            *ngIf='obj.content.kind == "container"' 
+            class='container'
+        >
+            <!--
+            <div class='title' [innerHtml]='obj.content.title'></div>
+            -->
+
+            <!-- dock -->
+            <ng-template 
+                *ngIf='!(dragging||obj.dragging)' 
+                [ngTemplateOutlet]='dock' 
+                [ngTemplateOutletContext]='{
+                    obj:obj,
+                    top:false,
+                    idx:-1,
+                    parent:obj,
+                    klass: "footer"
+                }'
+            >
+            </ng-template>
+            
+            <ng-template *ngFor='let child of obj.content.objects; trackBy: trackById; index as idx;'
+                [ngTemplateOutlet]='canvasObject' [ngTemplateOutletContext]='{parent:obj,obj:child,dragging:dragging||obj.dragging,idx:idx}'>
+            </ng-template>
+        </div>
+
+        <!-- ARROW -->
+        <div *ngIf='obj.content.kind == "arrow" && (obj.content.curve) as c' class='arrow'>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    attr.d='M {{c.sx}} {{c.sy}} C {{c.c1x}} {{c.c1y}}, {{c.c2x}} {{c.c2y}}, {{c.ex}} {{c.ey}}' 
+                    attr.stroke='{{obj.selected?"orange":"black"}}'
+                    stroke-width="3" 
+                    fill="none" />
+                <polygon *ngIf='obj.content.tipRight'
+                    points='0,-5 10,0, 0,5'
+                    attr.transform='translate({{c.ex}}, {{c.ey}}) rotate({{c.ae}})'
+                    attr.fill='{{obj.selected?"orange":"black"}}'
+                />
+                <polygon *ngIf='obj.content.tipLeft'
+                    points='0,-5 10,0, 0,5'
+                    attr.transform='translate({{c.sx}}, {{c.sy}}) rotate({{c.as}})'
+                    attr.fill='{{obj.selected?"orange":"black"}}'
+                />
+            </svg>
+            <ng-container *ngIf='!obj.content.start.object.dragging && !obj.content.end.object.dragging'>
+                <div 
+                    *ngFor='let pointDist of (c|curvePoints)'
+                    (click)='onObjectTap($event, obj)'
+                    class='arrow-hitbox box-selectable' 
+                    [attr.data-obj-id]='obj.id'
+                    style='--x:{{pointDist.point.x}}px;--y:{{pointDist.point.y}}px;--dist:{{pointDist.dist}}px;--angle:{{pointDist.angle}}rad;'
+                >
+                </div>
+            </ng-container>
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #dock let-obj='obj' let-parent='parent' let-top='top' let-idx='idx' let-klass='klass'>
+    <div class='dock' style='--x: {{obj.position.x}}px; --y: {{obj.position.y}}px; --w: {{obj.size.w}}px; --h: {{top?0:obj.size.h}}px;'>
+        <div 
+            appDraggable
+            [model]='parent'
+            [enable]='["dropzone"]'
+            [options]='{
+                acceptDrop: ".canvas-object, .tool, .folder-icon"
+            }'
+            (drop)='onObjectDrop($event, idx)'
+            class='hit {{klass}}'
+        >
+        </div>
+    </div>
+</ng-template>
+
+<ng-template #simpleTextEditor let-obj='obj'>
+    <app-text-area
+        appDraggable
+        [enable]='["resizeSensor"]'    
+        [enabled]='obj.editing'
+        [setBold]='setBold$'
+        [text]='obj.content.text'
+        [tux]='obj.content'
+        [setItalic]='setItalic$'
+        (tap)='onTextClick(obj, $event)'
+        (resize)='onResize($event, obj)'
+        (focus)='onTextFocus(obj)'
+        (blur)='onTextBlur(obj, $event)'
+        (blurAndChange)='onTextBlurAndChange(obj)'
+        (txinput)='onTextInput(obj, $event)'
+    >
+    </app-text-area>
+</ng-template>
+
+<ng-template #folderTextEditor let-obj='obj'>
+    <app-text-area
+        class='textarea'
+        appDraggable
+        [enable]='["resizeSensor"]'    
+        [enabled]='obj.editing'
+        [text]='obj.content.name'
+        [tux]='obj.content'
+        (tap)='onTextClick(obj, $event)'
+        (resize)='onResize($event, obj)'
+        (focus)='onTextFocus(obj)'
+        (blur)='onTextBlur(obj, $event)'
+        (blurAndChange)='onTextBlurAndChange(obj)'
+        (txinput)='onTextInput(obj, $event)'
+    >
+    </app-text-area>
+</ng-template>

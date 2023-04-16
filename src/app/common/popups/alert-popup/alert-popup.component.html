@@ -1,0 +1,17 @@
+<div id='alert-popup' *ngIf='ref && ref.data'>
+    <div id='title'>
+        <i *ngIf='ref.data.icon' class="lni lni-{{ref.data.icon}}"></i>
+        {{ref.data.title}}
+    </div>
+    <div id='body'>{{ref.data.body}}</div>
+    <div id='controls'>
+        <div (click)='ref.data.onCancel()' id='cancel' class='button ui-shadow'>
+            <span>CANCEL</span>
+            <i class="lni lni-close"></i>
+        </div>
+        <div (click)='ref.data.onConfirm()' id='confirm' class='button ui-shadow'>
+            <span>OK</span>
+            <i class="lni lni-checkmark"></i>
+        </div>
+    </div>
+</div>
